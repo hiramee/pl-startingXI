@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: pl-startingXI
+
+Resources:
+  PLStartingXIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.7
+      FunctionName: PLStartingXIFunction
+      Layers:
+        - !Sub arn:aws:lambda:ap-northeast-1:${AWS::AccountId}:layer:seleniumlayer:1
+        - !Sub arn:aws:lambda:ap-northeast-1:${AWS::AccountId}:layer:webdriverlayer:1
+      MemorySize: 512
+      Timeout: 40
+      Policies:
+        - AWSLambdaExecute
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "sns:Publish"
+              Resource: !Ref PLStartingXITopic
+  PLStartingXITopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: PublishPLStartingXI
+      TopicName: PublishPLStartingXI
+  MyMailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: XXX@XXX.com
+      Protocol: email
+      TopicArn: !Ref PLStartingXITopic
+  RuleWOLEVE:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: "cron(5 20 12 1 ? 2021)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt PLStartingXIFunction.Arn
+          Id: WOLEVE
+          Input: '{"id":"59073"}'
+  PermissionInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref "PLStartingXIFunction"
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt "RuleWOLEVE.Arn"
